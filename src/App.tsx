@@ -1,43 +1,97 @@
-import { useEffect, useState } from "react";
-import { Button, Card, Col, Container, Row } from "react-bootstrap";
+import { ChangeEvent, useEffect, useState } from "react";
+import { Button, Card, Col, Container, Form, Row } from "react-bootstrap";
 import AddCollisionDomainForm from "./AddCollisionDomainForm";
 // @ts-expect-error types are missing
 import CytoscapeComponent from "react-cytoscapejs";
+// @ts-expect-error types are missing
+import Cytoscape from "cytoscape";
+// @ts-expect-error types are missing
+import coseBilkent from "cytoscape-cose-bilkent";
 import { Host } from "./types";
 import AddHostModalForm from "./AddHostModalForm";
 import { createLabZip } from "./LabGenerator";
 import { generateNetworkGraph } from "./NetworkGraph";
 import { checkAllPointToPointConnections } from "./NetworkHelper";
 
+Cytoscape.use(coseBilkent);
+
+function GraphLayoutSelector(props: {
+  layouts: string[];
+  defaultLayout: string;
+  onSelect: (layout: string) => void;
+}) {
+  const [selectedLayout, setSelectedLayout] = useState(props.defaultLayout);
+
+  function layoutSelectionChangeHandler(event: ChangeEvent<HTMLSelectElement>) {
+    setSelectedLayout(event.target.value);
+  }
+
+  return (
+    <>
+      <Form.Select
+        value={selectedLayout}
+        onChange={layoutSelectionChangeHandler}
+      >
+        {props.layouts.map((layout) => (
+          <option key={layout} value={layout}>
+            {layout}
+          </option>
+        ))}
+      </Form.Select>
+      <Button onClick={() => props.onSelect(selectedLayout)}>
+        Adjust Layout
+      </Button>
+    </>
+  );
+}
+
 function App() {
-  // const defaultLayoutAlgorithm = {
-  //   name: "cose",
-  //   animate: "false",
-  //   numIter: 10,
-  // };
+  const graphLayouts = {
+    "cose-bilkent": {
+      name: "cose-bilkent",
+      animate: "end",
+    },
+    cose: {
+      name: "cose",
+      animate: "end",
+      numIter: 10,
+    },
+    grid: {
+      name: "grid",
+    },
+  };
+
+  const defaultLayoutName = "cose-bilkent";
 
   const [showAddHost, setShowAddHost] = useState(false);
   const [canAddHost, setCanAddHost] = useState(false);
   const [hosts, setHosts] = useState<Host[]>([]);
   const [collisionDomains, setCollisionDomains] = useState<string[]>([]);
   const [networkGraph, setNetworkGraph] = useState<unknown>([]);
-  const [selectedHost, setSelectedHost] = useState<Host|null>(null);
+  const [selectedHost, setSelectedHost] = useState<Host | null>(null);
+  const [selectedLayout, setSelectedLayout] = useState<{name: string}>(
+    graphLayouts["cose-bilkent"]
+  );
 
   useEffect(() => {
-    console.log("Updated")
     setNetworkGraph(() => {
       return generateNetworkGraph(hosts, collisionDomains);
     });
-    const connectionIssues = checkAllPointToPointConnections(collisionDomains, hosts);
-    if(connectionIssues.length > 0) {
-      const warningMessage = connectionIssues.map(issue => {
-        const domainId = issue.source.domainId;
-        const sourceAddress = issue.source.ipv4Address;
-        const sourceMask = issue.source.netmask;
-        const targetAddress = issue.target.ipv4Address;
-        const targetMask = issue.target.netmask;
-        return `(${domainId}) Cannot communicate from ${sourceAddress}/${sourceMask} to ${targetAddress}/${targetMask}`
-      }).join("\n")
+    const connectionIssues = checkAllPointToPointConnections(
+      collisionDomains,
+      hosts
+    );
+    if (connectionIssues.length > 0) {
+      const warningMessage = connectionIssues
+        .map((issue) => {
+          const domainId = issue.source.domainId;
+          const sourceAddress = issue.source.ipv4Address;
+          const sourceMask = issue.source.netmask;
+          const targetAddress = issue.target.ipv4Address;
+          const targetMask = issue.target.netmask;
+          return `(${domainId}) Cannot communicate from ${sourceAddress}/${sourceMask} to ${targetAddress}/${targetMask}`;
+        })
+        .join("\n");
       console.warn(warningMessage);
       alert(warningMessage);
     }
@@ -68,6 +122,7 @@ function App() {
       },
     },
   ];
+  let cytoscapeApi: unknown;
 
   function domainAddHandler(name: string) {
     if (undefined === collisionDomains.find((domain) => domain === name)) {
@@ -79,19 +134,16 @@ function App() {
   }
 
   function hostAddHandler(host: Host): void {
-    if(selectedHost) {
+    if (selectedHost) {
       // We're in editing mode, apply changes.
       setHosts(() => {
-        return [
-          ...hosts.filter(h => h.id !== host.id),
-          host,
-        ]
+        return [...hosts.filter((h) => h.id !== host.id), host];
       });
 
       // Exit from editing mode.
       setSelectedHost(() => null);
-    }
-    else if (undefined === hosts.find((h) => h.id === host.id)) { // We're in creation mode. Don't add the host if it already exists.
+    } else if (undefined === hosts.find((h) => h.id === host.id)) {
+      // We're in creation mode. Don't add the host if it already exists.
       setHosts(() => {
         return [...hosts, host];
       });
@@ -112,18 +164,23 @@ function App() {
     createLabZip(hosts, collisionDomains);
   }
 
-  // function layoutSelectionChangeHandler(event: ChangeEvent<HTMLInputElement>) {
-  //   if (event.target.checked) {
-  //     setGraphLayout(() => defaultLayoutAlgorithm);
-  //   } else {
-  //     setGraphLayout(() => null);
-  //   }
-  // }
+  function layoutChangeHandler(layout: string) {
+    setSelectedLayout(() => {
+      // @ts-expect-error didn't find a better way to do this
+      return { ...graphLayouts[layout] };
+    });
+    // @ts-expect-error missing types
+    cytoscapeApi.layout(selectedLayout).run();
+    // @ts-expect-error missing types
+    cytoscapeApi.fit();
+  }
 
-  function nodeSelectionHandler(event: { target: { _private: { data: { id: string; type: string; }; }; }; }) {
-    const {id, type} = event.target._private.data;
-    if(type === "host") {
-      const host = hosts.find(host => host.id === id)!;
+  function nodeSelectionHandler(event: {
+    target: { _private: { data: { id: string; type: string } } };
+  }) {
+    const { id, type } = event.target._private.data;
+    if (type === "host") {
+      const host = hosts.find((host) => host.id === id)!;
       setSelectedHost(() => host);
       setShowAddHost(true);
     }
@@ -159,34 +216,40 @@ function App() {
             <Button variant="success" onClick={downloadConfigurationHandler}>
               Get lab.conf
             </Button>
-            {/* <Form.Switch
-              label="Automatic Graph Layout"
-              onChange={layoutSelectionChangeHandler}
-            ></Form.Switch> */}
+            <GraphLayoutSelector
+              layouts={[...Object.keys(graphLayouts)]}
+              defaultLayout={defaultLayoutName}
+              onSelect={layoutChangeHandler}
+            ></GraphLayoutSelector>
           </Col>
         </Row>
         <Row>
           <CytoscapeComponent
             style={{ width: "100vw", height: "100vh" }}
             elements={networkGraph}
-            layout={{ name: "grid" }}
-            minZoom={1.0}
-            maxZoom={1.0}
+            minZoom={0.5}
+            maxZoom={2.0}
             zoom={1}
             pan={{ x: 10, y: 10 }}
             stylesheet={cyStylesheet}
+            layout={selectedLayout}
             cy={
               // @ts-expect-error missing types
               (cy) => {
-              // cy.on("add", () => {
-              //   if (graphLayout) {
-              //     console.log(graphLayout);
-              //     cy.layout(graphLayout).run();
-              //     cy.fit();
-              //   }
-              // });
-              cy.on('cxttap', "node", (event: { target: { _private: { data: { id: string; type: string; }; }; }; }) => { nodeSelectionHandler(event) });
-            }}
+                cytoscapeApi = cy;
+                cy.on(
+                  "cxttap",
+                  "node",
+                  (event: {
+                    target: {
+                      _private: { data: { id: string; type: string } };
+                    };
+                  }) => {
+                    nodeSelectionHandler(event);
+                  }
+                );
+              }
+            }
           ></CytoscapeComponent>
         </Row>
         <AddHostModalForm

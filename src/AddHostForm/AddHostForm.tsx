@@ -9,8 +9,10 @@ function AddHostForm(props: {
   collisionDomains: string[];
   onSubmit: (host: Host) => void;
 }) {
+  const allAvailableInterfaces = [...Array(10).keys()]; // eth0 to eth9 for simplicity
+
   const [availableInterfaces, setAvailableInterfaces] = useState(
-    [...Array(10).keys()].filter(
+    allAvailableInterfaces.filter(
       (interfaceId) =>
         props.host?.interfaces.find((iface) => iface.id === interfaceId) ===
         undefined
@@ -59,6 +61,7 @@ function AddHostForm(props: {
         interfaces: [],
       };
     });
+    setAvailableInterfaces(() => allAvailableInterfaces);
   }
 
   function interfaceRemoveHandler(interfaceId: number) {
