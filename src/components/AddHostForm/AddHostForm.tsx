@@ -1,6 +1,6 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { Form, Button } from "react-bootstrap";
-import { Host, NetworkInterface } from "../types";
+import { Host, NetworkInterface } from "../../types";
 import NetworkInterfaceListDetail from "../NetworkInterfaceListDetail";
 import AddNetworkInterfaceForm from "./AddNetworkInterfaceForm";
 

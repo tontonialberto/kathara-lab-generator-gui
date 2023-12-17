@@ -1,5 +1,5 @@
 import { ChangeEvent, useEffect, useState } from "react";
-import { NetworkInterface } from "../types";
+import { NetworkInterface } from "../../types";
 import { Button, Form } from "react-bootstrap";
 
 function AddNetworkInterfaceForm(props: {

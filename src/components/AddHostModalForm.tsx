@@ -1,6 +1,6 @@
 import Modal from "react-bootstrap/Modal";
 import AddHostForm from "./AddHostForm/AddHostForm";
-import { Host } from "./types";
+import { Host } from "../types";
 
 function AddHostModalForm(props: {
   show: boolean;

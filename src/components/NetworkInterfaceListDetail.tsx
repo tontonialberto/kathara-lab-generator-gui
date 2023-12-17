@@ -1,5 +1,5 @@
 import { Badge, Button, Card, ListGroup } from "react-bootstrap";
-import { NetworkInterface } from "./types";
+import { NetworkInterface } from "../types";
 
 function NetworkInterfaceListDetail(props: {
   interfaces: NetworkInterface[];

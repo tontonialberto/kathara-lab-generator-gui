@@ -1,6 +1,6 @@
-import { ChangeEvent, useEffect, useState } from "react";
-import { Button, Card, Col, Container, Form, Row } from "react-bootstrap";
-import AddCollisionDomainForm from "./AddCollisionDomainForm";
+import { useEffect, useState } from "react";
+import { Button, Card, Col, Container, Row } from "react-bootstrap";
+import AddCollisionDomainForm from "./components/AddCollisionDomainForm";
 // @ts-expect-error types are missing
 import CytoscapeComponent from "react-cytoscapejs";
 // @ts-expect-error types are missing
@@ -8,42 +8,13 @@ import Cytoscape from "cytoscape";
 // @ts-expect-error types are missing
 import coseBilkent from "cytoscape-cose-bilkent";
 import { Host } from "./types";
-import AddHostModalForm from "./AddHostModalForm";
+import AddHostModalForm from "./components/AddHostModalForm";
 import { createLabZip } from "./LabGenerator";
 import { generateNetworkGraph } from "./NetworkGraph";
 import { checkAllPointToPointConnections } from "./NetworkHelper";
+import GraphLayoutSelector from "./components/NetworkGraphComponent/GraphLayoutSelector";
 
 Cytoscape.use(coseBilkent);
-
-function GraphLayoutSelector(props: {
-  layouts: string[];
-  defaultLayout: string;
-  onSelect: (layout: string) => void;
-}) {
-  const [selectedLayout, setSelectedLayout] = useState(props.defaultLayout);
-
-  function layoutSelectionChangeHandler(event: ChangeEvent<HTMLSelectElement>) {
-    setSelectedLayout(event.target.value);
-  }
-
-  return (
-    <>
-      <Form.Select
-        value={selectedLayout}
-        onChange={layoutSelectionChangeHandler}
-      >
-        {props.layouts.map((layout) => (
-          <option key={layout} value={layout}>
-            {layout}
-          </option>
-        ))}
-      </Form.Select>
-      <Button onClick={() => props.onSelect(selectedLayout)}>
-        Adjust Layout
-      </Button>
-    </>
-  );
-}
 
 function App() {
   const graphLayouts = {
@@ -69,7 +40,7 @@ function App() {
   const [collisionDomains, setCollisionDomains] = useState<string[]>([]);
   const [networkGraph, setNetworkGraph] = useState<unknown>([]);
   const [selectedHost, setSelectedHost] = useState<Host | null>(null);
-  const [selectedLayout, setSelectedLayout] = useState<{name: string}>(
+  const [selectedLayout, setSelectedLayout] = useState<{ name: string }>(
     graphLayouts["cose-bilkent"]
   );
 
