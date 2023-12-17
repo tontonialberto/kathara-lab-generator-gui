@@ -8,4 +8,5 @@ export interface NetworkInterface {
 export interface Host {
     id: string;
     interfaces: Array<NetworkInterface>;
+    isRouter: boolean;
 }

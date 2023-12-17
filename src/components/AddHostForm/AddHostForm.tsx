@@ -21,6 +21,7 @@ function AddHostForm(props: {
   const [hostData, setHostData] = useState<Host>({
     id: props.host?.id || "",
     interfaces: props.host?.interfaces || [],
+    isRouter: props.host ? props.host.isRouter : true, // by default an host is also a router
   });
   const isEditMode = props.host !== null;
   const [canSubmit, setCanSubmit] = useState(isEditMode);
@@ -59,6 +60,7 @@ function AddHostForm(props: {
       return {
         id: "",
         interfaces: [],
+        isRouter: true,
       };
     });
     setAvailableInterfaces(() => allAvailableInterfaces);
@@ -78,6 +80,15 @@ function AddHostForm(props: {
     });
   }
 
+  function isRouterChangeHandler(event: ChangeEvent<HTMLInputElement>) {
+    setHostData(() => {
+      return {
+        ...hostData,
+        isRouter: event.target.checked
+      }
+    })
+  }
+
   return (
     <>
       <Form onSubmit={addHostHandler}>
@@ -91,6 +102,11 @@ function AddHostForm(props: {
             onChange={nameChangeHandler}
             disabled={props.host !== null}
           />
+          <Form.Switch
+            label="Router"
+            checked={hostData.isRouter}
+            onChange={isRouterChangeHandler}
+          ></Form.Switch>
           <NetworkInterfaceListDetail
             interfaces={hostData.interfaces}
             onDelete={interfaceRemoveHandler}

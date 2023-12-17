@@ -47,7 +47,9 @@ export function generateStartupFile(
     lines.push(line);
   });
 
-  lines.push("systemctl start frr");
+  if(host.isRouter) {
+    lines.push("systemctl start frr");
+  }
 
   return lines.join(options.lineSeparator);
 }
@@ -100,8 +102,13 @@ export async function createLabZip(
 
   // Get hosts directories
   hosts.forEach((host) => {
-    const frrFolder = zip.folder(host.id)?.folder("etc")?.folder("frr");
-    frrFolder?.file("vtysh.conf", "service integrated-vtysh-config");
+    const hostFolder = zip.folder(host.id);
+
+    // Get routing daemon directory
+    if (host.isRouter) {
+      const frrFolder = hostFolder?.folder("etc")?.folder("frr");
+      frrFolder?.file("vtysh.conf", "service integrated-vtysh-config");
+    }
   });
   
   // Get shared folder

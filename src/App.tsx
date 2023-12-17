@@ -8,6 +8,7 @@ import { checkAllPointToPointConnections } from "./NetworkHelper";
 import GraphLayoutSelector from "./components/NetworkGraphComponent/GraphLayoutSelector";
 import * as config from "./config.json";
 import NetworkGraphComponent from "./components/NetworkGraphComponent/NetworkGraphComponent";
+import { NetworkGraphLayout } from "./components/NetworkGraphComponent/types";
 
 function App() {
   const availableNetworkGraphLayouts = config.graph.layouts;
@@ -18,8 +19,10 @@ function App() {
   const [hosts, setHosts] = useState<Host[]>([]);
   const [collisionDomains, setCollisionDomains] = useState<string[]>([]);
   const [selectedHost, setSelectedHost] = useState<Host | null>(null);
-  const [selectedLayout, setSelectedLayout] = useState<unknown>(
-    availableNetworkGraphLayouts[defaultNetworkGraphLayout]
+  const [selectedLayout, setSelectedLayout] = useState<NetworkGraphLayout>(
+    availableNetworkGraphLayouts[
+      defaultNetworkGraphLayout as keyof typeof config.graph.layouts
+    ]
   );
 
   useEffect(() => {
@@ -85,7 +88,11 @@ function App() {
 
   function layoutChangeHandler(layout: string) {
     setSelectedLayout(() => {
-      return { ...availableNetworkGraphLayouts[layout] };
+      return {
+        ...availableNetworkGraphLayouts[
+          layout as keyof typeof config.graph.layouts
+        ],
+      };
     });
   }
 

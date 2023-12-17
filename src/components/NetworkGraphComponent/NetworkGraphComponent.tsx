@@ -8,14 +8,9 @@ import * as config from "../../config.json";
 import { Host } from "../../types";
 import { generateNetworkGraph } from "./NetworkGraph";
 import { useEffect, useState } from "react";
+import { NetworkGraphLayout } from "./types";
 
 Cytoscape.use(coseBilkent);
-
-interface NetworkGraphLayout {
-  name: string;
-  animate?: string;
-  numIter?: number;
-}
 
 function NetworkGraphComponent(props: {
   network: {
