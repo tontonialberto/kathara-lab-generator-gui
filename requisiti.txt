@@ -5,68 +5,50 @@ Interfaccia grafica per la creazione di un lab Katharà. Nello specifico:
     - Aggiungere un dominio di collisione
     - Aggiungere un host
     - Aggiungere un'interfaccia a un host
+    - Modificare un host esistente
 - Controllo delle connessioni punto-punto (cioè quelle su uno stesso dominio di collisione)
 - Generazione di lab.conf a partire da un grafo di nodi (host e domini di collisione)
 - Generazione di file .startup, contenente:
     - per ogni interfaccia dell'host, il comando shell per la configurazione dell'indirizzo ipv4
-    - un singolo comando "systemctl start frr"
+    - se l'host è un router, un singolo comando "systemctl start frr"
+    - se l'host è un name server, un singolo comando "systemctl start named"
 - Rendere possibile il download di uno zip contenente una cartella (dal nome configurabile), con al suo interno:
     - il file lab.conf
     - un file di startup per ogni host
     - una cartella shared, con all'interno
         - un file test_routing.sh che consente di testare la comunicazione con tutte le macchine della rete
-    - una cartella per ogni host, contenente le sottocartelle /etc/frr 
+    - una cartella per ogni host:
+        - se l'host è un router, contiene la cartella /etc/frr ed i file di configurazione del demone di routing
+            - nessun demone, a parte zebra, è attivo. L'utente deve poi abilitarli manualmente modificando i files.
+        - se l'host è un name server, contiene la cartella /etc/bind con all'interno:
+            - il file named.conf.options
+            - il file named.conf
+            - un file db.root che contiene le informazioni sul root name server
+            - un file db.<domain> che contiene le informazioni sulla zona gestita dal name server
+        - se l'host usa DNS, contiene il file /etc/resolv.conf
 
-
- * Aggiungere un dominio di collisione:
- * - id
- *
- * Aggiungere un nodo:
- *  ! non si può aggiungere un nodo che già esiste
- * - id
- * - interfacce:
- *   - nome
- *   - ip address
- *   - mask
- *   - dominio di collisione
- *
- * Rimuovere un nodo:
- *  - id
- * 
- * Generazione dei files:
- *  - un singolo lab.conf
- *    - per ogni dominio di collisione X:
- *      - per ogni macchina m che ha un'interfaccia I su X:
- *        - una riga 'm[I]=X'
- *  - per ogni macchina m:
- *    - per ogni interfaccia I e il suo indirizzo ipv4 addr e la sua netmask:
- *      - una riga 'ip address add addr/mask dev ethI'
- *    - se deve avere frr abilitato: una riga 'systemctl start frr'
- *  - una cartella shared:
- *    - un file test_routing.sh che contiene, per ogni interfaccia presente sulla rete
- *      - una riga 'ping -qc 2 $addr' dove $addr è l'indirizzo associato all'interfaccia
- */
-
-
-controllo delle connessioni su uno stesso dominio di collisione.
-Restituisce una lista di errori di configurazione per ogni coppia di interfacce collegate al dominio che non riescono a comunicare.
-checkCollisionDomainConnections
-
+generazione file, comandi e cartelle dns:
 input:
-collisionDomain: string // dominio da controllare
-interfaces: NetworkInterface[] // interfacce connesse al dominio di collisione
-
-output:
-issues: {source: NetworkInterface, target: NetworkInterface}[]
-
+    - host: 
+        - id
+        - interfaces: list of 
+            - id
+            - domainId
+            - address
+            - netmask
+        - isRouter
+        - isNameServer: bool
+        - isDNSEnabled: bool
+        - nameServerConfig:
+            - 
 procedimento:
-issues = []
-per ogni $iface1 in $interfaces:
-    netAddress1 = (and bit a bit $iface1.ipv4, $iface1.netmask)
-    per ogni $iface2 in $interfaces:
-        netAddress2 = (and bit a bit $iface2.ipv4, $iface2.netmask)
-        if netAddress1 !== netAddress2:
-            issues.push(iface1, iface2)
-return issues
-        
-confronto l'and <address1, mask1> con l'and <address2, mask2>
+    - nel file di startup: eseguire named se host.isNameServer:
+        aggiungi la riga "systemctl start named"
+    - generazione di /etc/resolv.conf se l'host usa DNS ma non è un NS
+
+    - generazione del named.conf.options se l'host è un NS (differenza tra NS locale o no)
+        - il lookup ricorsivo verrà effettuato sulla prima interfaccia dell'host
+    - generazione del named.conf se l'host è un NS
+    - generazione del db.root se l'host è un NS non radice
+    - generazione del db.<sottodominio> se l'host è un NS non locale
+
