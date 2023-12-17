@@ -1,53 +1,28 @@
 import { useEffect, useState } from "react";
 import { Button, Card, Col, Container, Row } from "react-bootstrap";
 import AddCollisionDomainForm from "./components/AddCollisionDomainForm";
-// @ts-expect-error types are missing
-import CytoscapeComponent from "react-cytoscapejs";
-// @ts-expect-error types are missing
-import Cytoscape from "cytoscape";
-// @ts-expect-error types are missing
-import coseBilkent from "cytoscape-cose-bilkent";
 import { Host } from "./types";
 import AddHostModalForm from "./components/AddHostModalForm";
 import { createLabZip } from "./LabGenerator";
-import { generateNetworkGraph } from "./NetworkGraph";
 import { checkAllPointToPointConnections } from "./NetworkHelper";
 import GraphLayoutSelector from "./components/NetworkGraphComponent/GraphLayoutSelector";
-
-Cytoscape.use(coseBilkent);
+import * as config from "./config.json";
+import NetworkGraphComponent from "./components/NetworkGraphComponent/NetworkGraphComponent";
 
 function App() {
-  const graphLayouts = {
-    "cose-bilkent": {
-      name: "cose-bilkent",
-      animate: "end",
-    },
-    cose: {
-      name: "cose",
-      animate: "end",
-      numIter: 10,
-    },
-    grid: {
-      name: "grid",
-    },
-  };
-
-  const defaultLayoutName = "cose-bilkent";
+  const availableNetworkGraphLayouts = config.graph.layouts;
+  const defaultNetworkGraphLayout = config.graph.defaultLayout;
 
   const [showAddHost, setShowAddHost] = useState(false);
   const [canAddHost, setCanAddHost] = useState(false);
   const [hosts, setHosts] = useState<Host[]>([]);
   const [collisionDomains, setCollisionDomains] = useState<string[]>([]);
-  const [networkGraph, setNetworkGraph] = useState<unknown>([]);
   const [selectedHost, setSelectedHost] = useState<Host | null>(null);
-  const [selectedLayout, setSelectedLayout] = useState<{ name: string }>(
-    graphLayouts["cose-bilkent"]
+  const [selectedLayout, setSelectedLayout] = useState<unknown>(
+    availableNetworkGraphLayouts[defaultNetworkGraphLayout]
   );
 
   useEffect(() => {
-    setNetworkGraph(() => {
-      return generateNetworkGraph(hosts, collisionDomains);
-    });
     const connectionIssues = checkAllPointToPointConnections(
       collisionDomains,
       hosts
@@ -67,33 +42,6 @@ function App() {
       alert(warningMessage);
     }
   }, [hosts, collisionDomains]);
-
-  const cyStylesheet = [
-    {
-      selector: "node[label]",
-      style: {
-        label: "data(label)",
-      },
-    },
-    {
-      selector: "node[type='host']",
-      style: {
-        shape: "rectangle",
-        "background-color": "green",
-      },
-    },
-    {
-      selector: "edge[label]",
-      style: {
-        label: "data(label)",
-        width: 3,
-        "font-size": "7px",
-        "text-background-opacity": 1,
-        "text-background-color": "#fff",
-      },
-    },
-  ];
-  let cytoscapeApi: unknown;
 
   function domainAddHandler(name: string) {
     if (undefined === collisionDomains.find((domain) => domain === name)) {
@@ -137,21 +85,16 @@ function App() {
 
   function layoutChangeHandler(layout: string) {
     setSelectedLayout(() => {
-      // @ts-expect-error didn't find a better way to do this
-      return { ...graphLayouts[layout] };
+      return { ...availableNetworkGraphLayouts[layout] };
     });
-    // @ts-expect-error missing types
-    cytoscapeApi.layout(selectedLayout).run();
-    // @ts-expect-error missing types
-    cytoscapeApi.fit();
   }
 
-  function nodeSelectionHandler(event: {
-    target: { _private: { data: { id: string; type: string } } };
+  function nodeSelectionHandler(node: {
+    id: string;
+    type: "host" | "collisionDomain";
   }) {
-    const { id, type } = event.target._private.data;
-    if (type === "host") {
-      const host = hosts.find((host) => host.id === id)!;
+    if (node.type === "host") {
+      const host = hosts.find((host) => host.id === node.id)!;
       setSelectedHost(() => host);
       setShowAddHost(true);
     }
@@ -188,49 +131,27 @@ function App() {
               Get lab.conf
             </Button>
             <GraphLayoutSelector
-              layouts={[...Object.keys(graphLayouts)]}
-              defaultLayout={defaultLayoutName}
+              layouts={[...Object.keys(availableNetworkGraphLayouts)]}
+              defaultLayout={defaultNetworkGraphLayout}
               onSelect={layoutChangeHandler}
             ></GraphLayoutSelector>
           </Col>
         </Row>
         <Row>
-          <CytoscapeComponent
-            style={{ width: "100vw", height: "100vh" }}
-            elements={networkGraph}
-            minZoom={0.5}
-            maxZoom={2.0}
-            zoom={1}
-            pan={{ x: 10, y: 10 }}
-            stylesheet={cyStylesheet}
+          <NetworkGraphComponent
+            network={{ hosts: hosts, collisionDomains: collisionDomains }}
             layout={selectedLayout}
-            cy={
-              // @ts-expect-error missing types
-              (cy) => {
-                cytoscapeApi = cy;
-                cy.on(
-                  "cxttap",
-                  "node",
-                  (event: {
-                    target: {
-                      _private: { data: { id: string; type: string } };
-                    };
-                  }) => {
-                    nodeSelectionHandler(event);
-                  }
-                );
-              }
-            }
-          ></CytoscapeComponent>
+            onNodeSelect={nodeSelectionHandler}
+          ></NetworkGraphComponent>
         </Row>
-        <AddHostModalForm
-          show={showAddHost}
-          host={selectedHost}
-          collisionDomains={collisionDomains}
-          onSubmit={hostAddHandler}
-          onHide={hideAddHostHandler}
-        ></AddHostModalForm>
       </Container>
+      <AddHostModalForm
+        show={showAddHost}
+        host={selectedHost}
+        collisionDomains={collisionDomains}
+        onSubmit={hostAddHandler}
+        onHide={hideAddHostHandler}
+      ></AddHostModalForm>
     </>
   );
 }

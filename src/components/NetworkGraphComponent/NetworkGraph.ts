@@ -1,4 +1,4 @@
-import { Host } from "./types";
+import { Host } from "../../types";
 
 interface NetworkGraphNode {
   data: {

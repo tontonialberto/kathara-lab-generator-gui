@@ -1,0 +1,55 @@
+{
+  "graph": {
+    "minZoom": 0.5,
+    "maxZoom": 2.0,
+    "zoom": 1,
+    "pan": {
+      "x": 50,
+      "y": 50
+    },
+    "layouts": {
+      "cose-bilkent": {
+        "name": "cose-bilkent",
+        "animate": "end"
+      },
+      "cose": {
+        "name": "cose",
+        "animate": "end",
+        "numIter": 10
+      },
+      "grid": {
+        "name": "grid"
+      }
+    },
+    "defaultLayout": "cose-bilkent",
+    "style": {
+      "width": "100vw",
+      "height": "100vh"
+    },
+    "stylesheet": [
+      {
+        "selector": "node[label]",
+        "style": {
+          "label": "data(label)"
+        }
+      },
+      {
+        "selector": "node[type='host']",
+        "style": {
+          "shape": "rectangle",
+          "background-color": "green"
+        }
+      },
+      {
+        "selector": "edge[label]",
+        "style": {
+          "label": "data(label)",
+          "width": 3,
+          "font-size": "7px",
+          "text-background-opacity": 1,
+          "text-background-color": "#fff"
+        }
+      }
+    ]
+  }
+}
